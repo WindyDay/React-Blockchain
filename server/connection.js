@@ -6,9 +6,9 @@ this.pool = null;
 this.init = function() {
   this.pool = mysql.createPool({
     connectionLimit: 10,
-    host: 'localhost',
-    user: 'root',
-    password: '',
+    host: 'den1.mysql2.gear.host',
+    user: 'blockchainclone',
+    password: 'Eu6Ha2Vwwg~?',
     database: 'blockchainclone'
   });
 };
