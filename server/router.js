@@ -1,7 +1,7 @@
 var connection = require('./connection');
 
 const fetch = require('isomorphic-fetch')
-
+const jwt = require('jsonwebtoken');
 
 module.exports = {
     configure: function (app) {
@@ -16,6 +16,35 @@ module.exports = {
             //console.log(req.headers.Email);
             Users.post(req.body, res);
         });
+        
+        app.use((req, res, next)=>{
+            console.log("Check tokken");
+            // check header or url parameters or post parameters for token
+            var token = req.body.token || req.query.token || req.headers['x-access-token'] || req.headers['authorization'];
+           // console.log(req.headers);
+            if(token){
+              //Decode the token
+              jwt.verify(token,"secret",(err,decod)=>{
+                if(err){
+                  res.status(403).json({
+                    message:"Wrong Token"
+                  });
+                }
+                else{
+                  //If decoded then call next() so that respective route is called.
+                  req.decoded=decod;
+                  next();
+                }
+              });
+            }
+            else{
+              res.status(403).json({
+                message:"No Token"
+              });
+            }
+    });
+
+
 
         // app.put('/api/put', function(req, res) {
         //     Users.put(req.body, res);
@@ -35,8 +64,37 @@ var Users = {
         connection.acquire(function (err, con) {
             con.query('select * from users where Email=?', [field_data.email], function (err, result) {
                 con.release();
-                console.log(result);
-                res.send(result);
+                for(var user of result){
+                    
+                    console.log(user);
+                    if(user.Email!=field_data.email){
+                        message="Wrong Email";
+                    }else{
+                        if(user.Password!=field_data.password){
+                            message="Wrong Password";
+                            break;
+                        }
+                        else{
+                          //create the token.
+                            var token=jwt.sign({Email: user.Email, Password: user.password},"secret");
+                            message="Login Successful";
+                            break;
+                        }
+                    }
+                  }
+                  //If token is present pass the token to client else send respective message
+                  if(token){
+                      res.status(200).json({
+                          message,
+                          token
+                      });
+                  }
+                  else{
+                      res.status(403).json({
+                          message
+                      });
+                  }
+               // res.send(result);
             });
         });
     },
